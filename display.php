@@ -1,13 +1,9 @@
 <?php
-require_once "../config.php";
+require_once "../../config.php";
 
-	//loon andmebaasiga ühenduse
-	//server, kasutaja, parool, andmebaas
 	$conn = new mysqli($server_host, $server_user_name, $server_password, $database);
-	//määran suhtlemisel kasutatava kooditabeli
 	$conn->set_charset("utf8");
-	
-	//valmistame ette andmete saatmise SQL käsu
+
 	$stmt = $conn->prepare("SELECT pealkiri, aasta, kestus, lavastaja, zanr, tootja added FROM film");
 	//echo $conn->error;
 	//seome saadavad andmed muutujatega

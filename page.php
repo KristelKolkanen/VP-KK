@@ -1,5 +1,5 @@
 <?php
-	require_once "../config.php";
+	require_once "../../config.php";
 	//echo $server_host;
 	$author_name = "K Kolkanen";
 	$full_time_now = date("d/m/Y H:i:s");
@@ -122,10 +122,6 @@
 				//seome SQL käsu õigete andmetega
 				//andmetüübid i - integer d - decimal s - string
 				$stmt->bind_param("si", $comment, $grade);
-				if($stmt->execute()) {
-					$grade = 7;
-					$comment = null;
-				}
 				$stmt->execute();
 				//sulgeme käsu
 				$stmt->close();
