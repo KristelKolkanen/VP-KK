@@ -1,5 +1,8 @@
 <?php
+	session_start();
 	require_once "../../config.php";
+	require_once "fnc_user.php";
+
 	//echo $server_host;
 	$author_name = "K Kolkanen";
 	$full_time_now = date("d/m/Y H:i:s");
@@ -10,28 +13,38 @@
 	$part_of_day = "suvaline päeva osa";
 	$sayings = ["Hommik on õhtust targem", "Kes tasa sõuab, see kaugele jõuab", "Enne töö, siis lõbu", "Amet ei riku meest, kui mees ametit ei riku", "Kuu on poissmeeste päike"];
 
-	if ($weekday_now <= 5) {
-		if ($hours_now >= 7 & $hours_now <=8){
-			$part_of_day = "hommik";
-		}
-		if ($hours_now >= 9 & $hours_now <=17) {
-			$part_of_day = "koolipäev";
-		} 
-		if ($hours_now >=18 & $hours_now <=22) {
-			$part_of_day = "õhtu chill";
-		}
-		if ($hours_now <7 || $hours_now >22) {
+	if($weekday_now <= 5){
+		if($hours_now < 7 or $hours_now >= 23){
 			$part_of_day = "uneaeg";
 		}
+		//   and   or
+		if($hours_now >= 8 and $hours_now < 18){
+			$part_of_day = "koolipäev";
+		}
+		if($hours_now >= 18 and $hours_now < 23){
+			$part_of_day = "vaba aeg";
+		}
 	}
-
-	if ($weekday_now == 6 || 7) {
-		if ($hours_now >= 10 & $hours_now <=13){
-			$part_of_day = "hommik";
-		} else if ($hours_now >= 14 & $hours_now <=17) {
-			$part_of_day = "vaba päev";
-		} else {
-			$part_of_day = "õhtu";
+	if($weekday_now == 6){
+		if($hours_now < 8){
+			$part_of_day = "uneaeg";
+		}
+		if($hours_now >= 8 and $hours_now < 23){
+			$part_of_day = "vaba aeg";
+		}
+		if($hours_now >= 23){
+			$part_of_day = "mõnusa logelemise aeg";
+		}
+	}
+		if($weekday_now == 7){
+		if($hours_now < 9){
+			$part_of_day = "uneaeg";
+		}
+		if($hours_now >= 9 and $hours_now < 19){
+			$part_of_day = "vaba aeg";
+		}
+		if($hours_now >= 19){
+			$part_of_day = "uueks nädalaks valmistumise aeg";
 		}
 	}
 
@@ -74,8 +87,9 @@
 		
 	//var_dump($photo_files);
 	// img <img src="kataloog/fail" alt="tekst">
-	$photo_html = '<img src="' .$photo_dir ."/" .$photo_files[mt_rand(0, count($photo_files) -1)] .'"';
-	$photo_html .= ' alt="Tallinna pilt">';
+	//$photo_html = '<img src="' .$photo_dir ."/" .$photo_files[mt_rand(0, count($photo_files) -1)] .'"';
+	//$photo_html .= ' alt="Tallinna pilt">';
+	$photo_number = mt_rand(0, count($photo_files) - 1);
 	
 	//vaatame, mida vormis sisestati
 	//var_dump($_POST); 
@@ -94,9 +108,29 @@
 			$select_html .= "</option>";
 		}
 		
-		if(isset ($_POST["photo_select"]) and !empty($_POST["photo_select"])) {
-			echo "Valiti pilt nr:" .$_POST["photo_select"];
+		if(isset($_POST["photo_select"]) and $_POST["photo_select"] >= 0) {
+			//echo "Valiti pilt nr:" .$_POST["photo_select"];
+			$photo_number = $_POST["photo_select"]; 
 		}
+
+		//loome rippmenüü valikud
+		//<option value="0">tln_1.JPG</option>
+		//<option value="1">tln_106.JPG</option>
+		$select_html = '<option value="" selected disabled>Vali pilt</option>';
+		for($i = 0;$i < count($photo_files); $i ++){
+			$select_html .= '<option value="' .$i .'"';
+			if($i == $photo_number){
+				$select_html .= " selected";
+			}
+			$select_html .= ">";
+			$select_html .= $photo_files[$i];
+			$select_html .= "</option> \n";
+	}
+		
+	//   <img src="kataloog/fail" alt="tekst">
+	
+	$photo_html = '<img src="' .$photo_dir ."/" .$photo_files[$photo_number] .'"';
+	$photo_html .= ' alt="Tallinna pilt">';
 		
 		$comment_error = null;
 		$grade = 7;
@@ -122,6 +156,10 @@
 				//seome SQL käsu õigete andmetega
 				//andmetüübid i - integer d - decimal s - string
 				$stmt->bind_param("si", $comment, $grade);
+				if($stmt->execute()) {
+					$grade = 7;
+					$comment = null;
+				}
 				$stmt->execute();
 				//sulgeme käsu
 				$stmt->close();
@@ -129,16 +167,18 @@
 				$conn->close();
 			}
 		}
-	
+		$login_error = null;
+		if(isset($_POST["login_submit"])){
+        //login sisse
+		$login_error = sign_in($_POST["email_input"], $_POST["password_input"]);
+    }
 ?>
 <!DOCTYPE html>
 <html lang="et">
-
 <head>
 	<meta charset="utf-8">
 	<title><?php echo $author_name;?> programmeerib veebi</title>
 </head>
-
 <body>
 <img src="pics/banner.png" alt="Tallinna Ülikooli Terra õppehoone">
 <h1>Suurim Pealkiri</h1>
@@ -152,6 +192,17 @@
 <a href="https://www.tlu.ee" target="_blank">
 <img src="pics/tlu_42.jpg" alt="Tallinna Ülikooli Terra õppehoone">
 </a>
+
+<hr>
+<h2>Logi sisse</h2>
+<form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+	<input type="email" name="email_input" placeholder="Kasutajatunnus ehk e-post">
+	<input type="password" name="password_input" placeholder="salasõna">
+	<input type="submit" name="login_submit" value="Logi sisse"><span><strong><?php echo $login_error; ?></strong></span>
+</form>
+<p>Või <a href="add_user.php">loo</a> endale kasutaja!</p>
+<hr>
+
 <p>Tänane vanasõna: <?php echo $sayings [mt_rand(0, count($sayings) -1)]; ?></p>
 <hr>
 <form method="POST">
@@ -181,7 +232,4 @@
 	<input type="submit" id="photo_submit" name="photo_submit" value="Määra foto">
 </form>	
 <?php echo $photo_html; ?>
-<hr>
-</body>
-
-</html>
+<?php require_once "footer.php";?>
